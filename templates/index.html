@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Task Manager</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const formatted = now.toLocaleString();
+            document.getElementById("datetime").textContent = formatted;
+        }
+        setInterval(updateDateTime, 1000);
+        window.onload = updateDateTime;
+
+        function requestNotificationPermission() {
+            if (Notification.permission !== 'granted') {
+                Notification.requestPermission();
+            }
+        }
+
+        function notifyTask(title, when, priority) {
+            if (Notification.permission === 'granted') {
+                new Notification("⏰ Task Reminder", {
+                    body: `${title} (${when}) - Priority: ${priority}`,
+                    icon: "/static/bell.png"
+                });
+            } else {
+                const notification = document.getElementById("custom-notification");
+                notification.textContent = `${title} (${when}) - Priority: ${priority}`;
+                notification.classList.add("show");
+                setTimeout(() => notification.classList.remove("show"), 5000);
+            }
+        }
+
+        function startDictation() {
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = "en-US";
+                recognition.start();
+
+                recognition.onresult = function(event) {
+                    document.getElementById('ollama_input').value = event.results[0][0].transcript;
+                    recognition.stop();
+                };
+
+                recognition.onerror = function(event) {
+                    console.error("Speech recognition error:", event.error);
+                    recognition.stop();
+                };
+            } else {
+                alert("Speech recognition not supported in this browser.");
+            }
+        }
+    </script>
+</head>
+<body onload="requestNotificationPermission()">
+    <div class="notification" id="custom-notification"></div>
+    <header>
+        AI Task & Time Manager
+        <div id="datetime"></div>
+    </header>
+
+    <section class="add-task">
+        <form action="/add" method="post">
+            <input type="text" name="title" placeholder="Task title" required>
+            <select name="when">
+                <option value="today">Today</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+            </select>
+            <select name="priority">
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <input type="text" name="remind_time" placeholder="HH:MM (optional)">
+            <input type="date" name="task_date">
+            <button type="submit">➕ Add Task</button>
+        </form>
+
+        <!-- 🔥 Ollama Natural Language Task Adder with Speech-to-Text -->
+        <form action="/add_ollama" method="post" style="margin-top: 10px;">
+            <input type="text" name="ollama_input" id="ollama_input" placeholder="Describe your task in natural language" required>
+            <button type="submit" class="speak-btn">🤖 Add with Ollama</button>
+            <button type="button" class="microphone-btn" onclick="startDictation()">🎤</button>
+        </form>
+    </section>
+
+    <section class="task-lists">
+        {% for group, items in tasks.items() %}
+        <div class="task-group">
+            <h2>{{ group.upper() }} Tasks</h2>
+            <ul>
+                {% for t in items %}
+                <li>
+                    <span>{{ t.title }} | Priority: {{ t.priority }} | Reminder: {{ t.remind_time }} | Date: {{ t.task_date or 'N/A' }}
+                        {% if not t.completed %}
+                        | <a href="/complete/{{ group }}/{{ t.title }}">✅ Complete</a>
+                        {% else %} ✅ Done {% endif %}
+                        | <a href="/delete/{{ group }}/{{ t.title }}" class="delete">🗑️ Delete</a>
+                    </span>
+                    <script>
+                        const taskTime = "{{ t.remind_time }}";
+                        const nowTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        if (taskTime && taskTime === nowTime) {
+                            notifyTask("{{ t.title }}", "{{ group }}", "{{ t.priority }}");
+                        }
+                    </script>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="actions">
+        <a href="/summarize">🔍 Summarize Today’s Tasks</a>
+        <a href="/reschedule">🔁 Reschedule Incomplete</a>
+    </section>
+
+    <section class="calendar">
+        <iframe src="https://calendar.google.com/calendar/embed?src=en.indian%23holiday%40group.v.calendar.google.com&ctz=Asia%2FKolkata"
+                style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+    </section>
+</body>
+</html>
