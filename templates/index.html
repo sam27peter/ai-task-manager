@@ -78,7 +78,6 @@
                 <option value="low">Low</option>
             </select>
             <input type="text" name="remind_time" placeholder="HH:MM (optional)">
-            <input type="date" name="task_date">
             <button type="submit">➕ Add Task</button>
         </form>
 
@@ -97,7 +96,7 @@
             <ul>
                 {% for t in items %}
                 <li>
-                    <span>{{ t.title }} | Priority: {{ t.priority }} | Reminder: {{ t.remind_time }} | Date: {{ t.task_date or 'N/A' }}
+                    <span>{{ t.title }} | Priority: {{ t.priority }} | Reminder: {{ t.remind_time }}
                         {% if not t.completed %}
                         | <a href="/complete/{{ group }}/{{ t.title }}">✅ Complete</a>
                         {% else %} ✅ Done {% endif %}

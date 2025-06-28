@@ -18,17 +18,11 @@ def add():
     when = request.form["when"]
     priority = request.form["priority"]
     remind_time = request.form.get("remind_time")
-    task_date = request.form.get("task_date")
 
     tasks = load_tasks()
 
-    # Ensure the 'when' group exists
     if when not in tasks:
         tasks[when] = []
-
-    # Append date to title if provided
-    if task_date:
-        title += f" (on {task_date})"
 
     add_task(tasks, title, when, priority, remind_time)
     return redirect("/")

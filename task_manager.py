@@ -12,7 +12,7 @@ def load_tasks():
     with open(DATA_FILE, 'r') as f:
         tasks = json.load(f)
 
-    # Ensure essential keys always exist
+    # Ensure all necessary keys exist
     for key in ["daily", "weekly", "monthly"]:
         tasks.setdefault(key, [])
 
@@ -62,7 +62,11 @@ def delete_task(tasks, when, title):
     save_tasks(tasks)
 
 def reschedule_incomplete(tasks):
+    updated = []
     for task in tasks.get("daily", []):
         if not task["completed"]:
-            task["title"] += " (rescheduled)"
+            if "(rescheduled)" not in task["title"].lower():
+                task["title"] += " (rescheduled)"
+            updated.append(task)
+    tasks["daily"] = updated
     save_tasks(tasks)
